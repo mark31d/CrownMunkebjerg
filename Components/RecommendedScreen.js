@@ -249,7 +249,17 @@ export default function RecommendedScreen() {
               <SpotCard
                 key={s.id || idx}
                 spot={s}
-                onMap={() => nav.navigate('Map', { focus: s })}
+                onMap={() =>
+                       nav.navigate('Map', {
+                         focus: {
+                           id:    s.id,
+                           title: s.title,
+                           desc:  s.desc,
+                           coords:{ lat: s.lat, lng: s.lng },
+                           image: s.image,
+                         },
+                       })
+                     }
                 onShare={async () => {
                   const msg = `${s.title}\n${formatCoords(s)}\n`;
                   try { await Share.share({ message: msg }); } catch {}
