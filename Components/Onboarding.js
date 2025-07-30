@@ -1,5 +1,6 @@
 // Components/Onboarding.js
-import React, { useRef, useState, useMemo, useEffect } from 'react';
+
+import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,7 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 const BG         = require('../assets/bg.png');
 const HOST_1     = require('../assets/host1.png');
 const HOST_2     = require('../assets/host2.png');
-const RAIL_RING  = require('../assets/onb_rail_ring.png'); // рельса + красное кольцо (одно PNG)
+const RAIL_RING  = require('../assets/onb_rail_ring.png');
 const ARROW_ICON = require('../assets/ic_arrow_white.png');
 
 const SLIDES = [
@@ -40,98 +41,76 @@ const SLIDES = [
   },
 ];
 
-/* --- ПАРАМЕТРЫ PNG рельсы/кольца (проценты относительно самого PNG) --- */
-const RING_CENTER_TOP_PCT_OF_IMG   = 0.165;
-const RING_CENTER_RIGHT_PCT_OF_IMG = 0.486;
-
-/* --- КНОПКА-СТРЕЛКА --- */
-const FAB_INNER_D_PCT_OF_W = 0.17;           // диаметр круга от ширины экрана
-const ARROW_SHIFT_DOWN_PCT_OF_SCREEN = 0.05; // базовый сдвиг ниже центра кольца
-const ARROW_EXTRA_UP_PCT    = 0.005;         // дополнительный подъём стрелки
-const ARROW_EXTRA_LEFT_PCT  = 0.02;          // дополнительный сдвиг стрелки влево
-
-/* --- ГИД и карточка --- */
-const HERO_WIDTH_PCT   = 0.72;
-const HERO_HEIGHT_PCT  = 0.58;
-const PERSON_BOTTOM_PAD_PCT = 0.346; // гид выше
-const CARD_BOTTOM_PCT  = 0.045;      // карточка чуть ниже
-
-/* helper */
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// константы для расчётов
+const CARD_BOTTOM_PCT       = 0.045;   // отступ карточки от низа экрана
+const CARD_PADDING_VERTICAL = 20;      // paddingVertical в styles.card
+const HERO_WIDTH_PCT        = 0.72;    // ширина гида от ширины экрана
+const HERO_HEIGHT_PCT       = 0.58;    // высота гида от высоты экрана
+const IMAGE_TRIM            = 20;      // убирает прозрачный низ PNG
+const GUIDE_EXTRA_DOWN_PX   = 15;      // насколько дополнительно опустить гида вниз
+const FAB_PCT               = 0.17;    // диаметр кнопки-стрелки
+const ARROW_SHIFT_DOWN_PCT  = 0.05;
+const ARROW_EXTRA_UP_PCT    = 0.005;
+const ARROW_EXTRA_LEFT_PCT  = 0.02;
 
 export default function Onboarding() {
-  const nav = useNavigation();
-
+  const navigation = useNavigation();
   const [screen, setScreen] = useState(Dimensions.get('window'));
-  const [cardH, setCardH]   = useState(0); // фиксированная высота карточки (макс. среди слайдов)
+  const [cardH, setCardH]   = useState(0);
+  const listRef            = useRef(null);
+  const [index, setIndex]  = useState(0);
 
+  // слушаем поворот/resize
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
       setScreen(window);
-      setCardH(0); // пересчёт при смене ориентации/размера экрана
+      setCardH(0);
     });
-    return () => sub?.remove?.();
+    return () => sub?.remove();
   }, []);
 
-  const listRef = useRef(null);
-  const [index, setIndex] = useState(0);
+  // настройка FlatList-видимости
+  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 60 });
+  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+    if (viewableItems.length) setIndex(viewableItems[0].index);
+  }, []);
 
+  // рельса + кольцо
+  const { scaledW, scaledH, topOffset, ringTop, ringRight } = useMemo(() => {
+    const src   = Image.resolveAssetSource(RAIL_RING);
+    const imgW  = src.width  || 74;
+    const imgH  = src.height || 1000;
+    const BLEED = 20;
+    const scale = (screen.height + BLEED) / imgH;
+    return {
+      scaledW:   imgW * scale,
+      scaledH:   screen.height + BLEED,
+      topOffset: -BLEED / 2,
+      ringTop:   -BLEED / 2 + (screen.height + BLEED) * 0.165,
+      ringRight: imgW * scale * 0.486,
+    };
+  }, [screen]);
+
+  // типографика
+  const { titleSize, titleLH, bodySize, bodyLH } = useMemo(() => {
+    const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
+    const t = Math.round(clamp(screen.width * 0.028, 16, 24));
+    const b = Math.round(clamp(screen.width * 0.024, 12, 16));
+    return {
+      titleSize,   titleLH: Math.round(t * 1.28),
+      bodySize:    b,       bodyLH:  Math.round(b * 1.40),
+    };
+  }, [screen]);
+
+  // диаметр FAB
+  const FAB_SIZE = Math.round(screen.width * FAB_PCT);
+
+  // переход дальше
   const onNext = () => {
     if (index < SLIDES.length - 1) {
       listRef.current?.scrollToIndex({ index: index + 1, animated: true });
     } else {
-      nav.replace('Home');
-    }
-  };
-
-  const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems?.length) setIndex(viewableItems[0].index ?? 0);
-  }).current;
-  const viewConfigRef = useRef({ viewAreaCoveragePercentThreshold: 60 });
-
-  /* ---------- РАСЧЁТ РЕЛЬСЫ БЕЗ ИСКАЖЕНИЙ (масштаб по высоте экрана) ---------- */
-  const railMetrics = useMemo(() => {
-    const src   = Image.resolveAssetSource(RAIL_RING);
-    const imgW  = src.width  || 74;
-    const imgH  = src.height || 1000;
-    const BLEED = 20; // запас по высоте, чтобы верх/низ не «резались»
-
-    const scale     = (screen.height + BLEED) / imgH;
-    const scaledH   = screen.height + BLEED;
-    const scaledW   = imgW * scale;
-    const topOffset = -BLEED / 2;
-
-    // координаты центра кольца (в координатах ЭКРАНА)
-    const ringTop   = topOffset + scaledH * RING_CENTER_TOP_PCT_OF_IMG;
-    const ringRight = scaledW  * RING_CENTER_RIGHT_PCT_OF_IMG;
-
-    const arrowShift = screen.height * ARROW_SHIFT_DOWN_PCT_OF_SCREEN;
-
-    return { scaledW, scaledH, topOffset, ringTop, ringRight, arrowShift };
-  }, [screen.height, screen.width]);
-
-  /* ---------- АДАПТИВНАЯ ТИПОГРАФИКА (МЕНЬШЕ) ---------- */
-  const typo = useMemo(() => {
-    const title   = Math.round(clamp(screen.width * 0.028, 16, 24));
-    const titleLH = Math.round(title * 1.28);
-    const body    = Math.round(clamp(screen.width * 0.024, 12, 16));
-    const bodyLH  = Math.round(body * 1.40);
-    return { title, titleLH, body, bodyLH };
-  }, [screen.width]);
-
-  /* ---------- КАРТОЧКА: ширина и отступы ---------- */
-  const CARD_W     = Math.min(screen.width * 0.84, 520);
-  const CARD_RAD   = 12;
-  const CARD_PAD_V = 20;
-  const CARD_PAD_H = 22;
-
-  const FAB_INNER_D = Math.round(screen.width * FAB_INNER_D_PCT_OF_W);
-
-  // Обработчик измерения высоты карточки — берём максимум среди слайдов
-  const onCardLayout = (e) => {
-    const h = Math.round(e.nativeEvent.layout.height);
-    if (h > 0) {
-      setCardH((prev) => (prev >= h ? prev : h));
+      navigation.replace('Home');
     }
   };
 
@@ -140,101 +119,99 @@ export default function Onboarding() {
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       <ImageBackground source={BG} style={styles.bg} resizeMode="cover">
-        {/* РЕЛЬСА + КОЛЬЦО справа без искажений */}
+        {/* Рельса + кольцо */}
         <Image
           source={RAIL_RING}
-          style={[
-            styles.railRing,
-            { width: railMetrics.scaledW, height: railMetrics.scaledH, top: railMetrics.topOffset },
-          ]}
+          style={{
+            position: 'absolute',
+            right:    0,
+            zIndex:   3,
+            width:    scaledW,
+            height:   scaledH,
+            top:      topOffset,
+          }}
           resizeMode="contain"
         />
 
-        {/* СЛАЙДЫ */}
         <FlatList
           ref={listRef}
           data={SLIDES}
-          keyExtractor={(it) => it.key}
+          keyExtractor={it => it.key}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          viewabilityConfig={viewConfig.current}
           onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewConfigRef.current}
-          renderItem={({ item }) => (
-            <View style={{ width: screen.width, height: screen.height }}>
-              {/* ГИД — меньше и выше */}
-              <View
-                style={[
-                  styles.personWrap,
-                  { paddingBottom: screen.height * PERSON_BOTTOM_PAD_PCT },
-                ]}
-              >
-                <Image
-                  source={item.img}
-                  style={{
-                    width:  screen.width  * HERO_WIDTH_PCT,
-                    height: screen.height * HERO_HEIGHT_PCT,
-                  }}
-                  resizeMode="contain"
-                />
-              </View>
+          renderItem={({ item }) => {
+            // базовый отступ для стека карточка+гид
+            const baseBottom = screen.height * CARD_BOTTOM_PCT;
+            // низ гида = низ стека + высота карточки - её padding + дополнительное опускание
+            const guideBottom = baseBottom + cardH - CARD_PADDING_VERTICAL - GUIDE_EXTRA_DOWN_PX;
 
-              {/* Карточка под гидом — фиксируем единую высоту через cardH */}
-              <View style={[styles.cardWrap, { bottom: screen.height * CARD_BOTTOM_PCT }]}>
-                <View
-                  onLayout={onCardLayout}
-                  style={[
-                    styles.card,
-                    {
-                      width: CARD_W,
-                      borderRadius: CARD_RAD,
-                      paddingVertical: CARD_PAD_V,
-                      paddingHorizontal: CARD_PAD_H,
-                      // Если cardH уже измерен, задаём одинаковую высоту всем карточкам
-                      height: cardH > 0 ? cardH : undefined,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.cardTitle, { fontSize: typo.title, lineHeight: typo.titleLH }]}>
-                    {item.title}
-                  </Text>
-                  {!!item.text && (
-                    <Text style={[styles.cardText, { fontSize: typo.body, lineHeight: typo.bodyLH }]}>
-                      {item.text}
+            return (
+              <View style={{ width: screen.width, height: screen.height }}>
+                {/* Карточка (поверх гида) */}
+                <View style={[styles.cardWrap, { bottom: baseBottom }]}>
+                  <View
+                    onLayout={e => {
+                      const h = e.nativeEvent.layout.height;
+                      if (h > cardH) setCardH(h);
+                    }}
+                    style={[
+                      styles.card,
+                      {
+                        width:  Math.min(screen.width * 0.84, 520),
+                        height: cardH > 0 ? cardH : undefined,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.cardTitle, { fontSize: titleSize, lineHeight: titleLH }]}>
+                      {item.title}
                     </Text>
-                  )}
+                    {!!item.text && (
+                      <Text style={[styles.cardText, { fontSize: bodySize, lineHeight: bodyLH }]}>
+                        {item.text}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                {/* Гид (с обрезкой PNG) */}
+                <View style={[styles.personWrap, { bottom: guideBottom }]}>
+                  <Image
+                    source={item.img}
+                    style={{
+                      width:        screen.width * HERO_WIDTH_PCT,
+                      height:       screen.height * HERO_HEIGHT_PCT,
+                      marginBottom: -IMAGE_TRIM,
+                    }}
+                    resizeMode="contain"
+                  />
                 </View>
               </View>
-            </View>
-          )}
+            );
+          }}
         />
 
-        {/* КНОПКА СО СТРЕЛКОЙ — чуть выше и левее центра кольца */}
+        {/* Кнопка-стрелка */}
         <Pressable
           onPress={onNext}
+          hitSlop={12}
           style={[
-            styles.ringTouch,
+            styles.arrowWrap,
             {
-              top:
-                railMetrics.ringTop +
-                railMetrics.arrowShift -
-                screen.height * ARROW_EXTRA_UP_PCT -
-                FAB_INNER_D / 2,
-              right:
-                railMetrics.ringRight +
-                screen.width * ARROW_EXTRA_LEFT_PCT -
-                FAB_INNER_D / 2,
-              width: FAB_INNER_D,
-              height: FAB_INNER_D,
-              borderRadius: FAB_INNER_D / 2,
+              width:        FAB_SIZE,
+              height:       FAB_SIZE,
+              borderRadius: FAB_SIZE / 2,
+              top:    ringTop + screen.height * ARROW_SHIFT_DOWN_PCT - screen.height * ARROW_EXTRA_UP_PCT - FAB_SIZE / 2,
+              right:  ringRight + screen.width * ARROW_EXTRA_LEFT_PCT - FAB_SIZE / 2,
             },
           ]}
-          hitSlop={12}
         >
-          <View style={styles.ringInner} />
+          <View style={styles.innerCircle} />
           <Image
             source={ARROW_ICON}
-            style={{ width: FAB_INNER_D * 0.44, height: FAB_INNER_D * 0.44 }}
+            style={{ width: FAB_SIZE * 0.44, height: FAB_SIZE * 0.44 }}
             resizeMode="contain"
           />
         </Pressable>
@@ -244,56 +221,51 @@ export default function Onboarding() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-  bg:   { flex: 1 },
-
-  // рельса поверх фона
-  railRing: { position: 'absolute', right: 0, zIndex: 3 },
-
-  // гид выше карточки
+  root:       { flex: 1, backgroundColor: '#000' },
+  bg:         { flex: 1 },
   personWrap: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    position:   'absolute',
+    left:       0,
+    right:      0,
     alignItems: 'center',
-    zIndex: 2,
+    zIndex:     1,  // гид за карточкой
   },
-
-  // карточка под гидом
-  cardWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+  cardWrap:   {
+    position:   'absolute',
+    left:       0,
+    right:      0,
     alignItems: 'center',
-    zIndex: 1,
+    zIndex:     2,  // карточка поверх гида
   },
-  card: {
-    backgroundColor: 'rgba(0,0,0,0.82)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+  card:       {
+    backgroundColor:   'rgba(0,0,0,0.82)',
+    borderWidth:       1,
+    borderColor:       'rgba(255,255,255,0.22)',
+    borderRadius:      12,
+    paddingVertical:   CARD_PADDING_VERTICAL,
+    paddingHorizontal: 22,
   },
-  cardTitle: {
-    color: '#FFF',
+  cardTitle:  {
+    color:      '#FFF',
     fontWeight: '800',
-    textAlign: 'center',
+    textAlign:  'center',
   },
-  cardText: {
+  cardText:   {
     marginTop: 10,
-    color: '#EDEDED',
+    color:     '#EDEDED',
     textAlign: 'center',
-    opacity: 0.9,
+    opacity:   0.9,
   },
-
-  // активная область стрелки
-  ringTouch: {
-    position: 'absolute',
-    zIndex: 4,
+  arrowWrap:  {
+    position:   'absolute',
+    zIndex:     4,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ringInner: {
-    position: 'absolute',
+  innerCircle:{
+    position:      'absolute',
     left: 0, right: 0, top: 0, bottom: 0,
-    borderRadius: 999,
-    backgroundColor: '#0D0D0D',
+    borderRadius:  999,
+    backgroundColor:'#0D0D0D',
   },
 });
