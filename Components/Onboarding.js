@@ -112,7 +112,7 @@ export default function Onboarding() {
 
   /* ---------- АДАПТИВНАЯ ТИПОГРАФИКА (МЕНЬШЕ) ---------- */
   const typo = useMemo(() => {
-    const title   = Math.round(clamp(screen.width * 0.048, 16, 24));
+    const title   = Math.round(clamp(screen.width * 0.028, 16, 24));
     const titleLH = Math.round(title * 1.28);
     const body    = Math.round(clamp(screen.width * 0.024, 12, 16));
     const bodyLH  = Math.round(body * 1.40);

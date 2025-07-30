@@ -19,7 +19,7 @@ const { width, height } = Dimensions.get('window');
 
 /* ------- ASSETS ------- */
 const BG    = require('../assets/bg.png');
-const LOGO  = require('../assets/logo.png');
+const LOGO  = require('../assets/krown_logo.png');
 
 const ICON_PIN      = require('../assets/ic_pin.png');
 const ICON_LAYERS   = require('../assets/ic_layers.png');
@@ -138,8 +138,8 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: width * 0.5,
-    height: width * 0.32,
-    marginTop: height * 0.07,
+    height: width * 0.42,
+    marginTop: height * 0.001,
   },
   title: {
     marginTop: 8,

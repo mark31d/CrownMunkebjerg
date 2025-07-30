@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 
 const BG   = require('../assets/bg.png');
-const LOGO = require('../assets/logo.png');
+const LOGO = require('../assets/krown_logo.png');
 
 /** Время до перехода на онбординг */
 const NAV_DELAY_MS = 2600;
@@ -27,7 +27,7 @@ const OPACITY_MAX   = 1.0;
 const DRIFT_MIN     = 2;                             // вертикальное «дыхание»
 const DRIFT_MAX     = -2;
 const BLUR_INACTIVE = 6;                             // размытие неактивных
-const HOLD_ACTIVE_MS = 450;                          // ← задержка на чёткой иконке
+const HOLD_ACTIVE_MS = 450;                          // задержка на чёткой иконке
 
 /** Сколько иконок рендерим */
 const ICONS_COUNT = 3;
@@ -35,7 +35,8 @@ const ICONS_COUNT = 3;
 export default function Loader() {
   const nav = useNavigation();
   const { width } = Dimensions.get('window');
-  const ICON_SIZE = width * 0.18;
+  // Увеличили размер иконки до 25% ширины экрана вместо 18%
+  const ICON_SIZE = width * 0.25;
 
   /** Активная иконка (чёткая), остальные размыты */
   const [activeIdx, setActiveIdx] = useState(0);
@@ -75,11 +76,11 @@ export default function Loader() {
 
     return () => {
       clearTimeout(t0); clearTimeout(t1); clearTimeout(t2);
-      if (loop0Ref.current) loop0Ref.current.stop();
-      if (loop1Ref.current) loop1Ref.current.stop();
-      if (loop2Ref.current) loop2Ref.current.stop();
-      if (rotateTimerRef.current) clearInterval(rotateTimerRef.current);
-      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+      loop0Ref.current?.stop();
+      loop1Ref.current?.stop();
+      loop2Ref.current?.stop();
+      clearInterval(rotateTimerRef.current);
+      clearTimeout(navTimerRef.current);
     };
   }, [a0, a1, a2, nav]);
 
@@ -119,9 +120,9 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: '#000' },
   centerBox: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',   // строго по центру
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   icon: { marginHorizontal: 14 },
 });
