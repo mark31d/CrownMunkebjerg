@@ -113,6 +113,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop:30,
   },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800', zIndex: 3 },
   backBtn: {

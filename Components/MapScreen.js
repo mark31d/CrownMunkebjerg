@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
 
   /* header */
   headerWrap: { position: 'absolute', top: 28, left: 0, right: 0, alignItems: 'center' },
-  header:     { width: width * 0.84, height: 72, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  header:     { width: width * 0.84, height: 72, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop:30 },
   headerTitle:{ color: '#fff', fontSize: 18, fontWeight: '800', zIndex: 3 },
   backBtn:    { position: 'absolute', left: 12, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   headerWM:   { position: 'absolute', right: 12, width: 64, height: 64, zIndex: 0 },

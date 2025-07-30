@@ -14,6 +14,7 @@ import {
   ScrollView,
   Platform,
   Easing,
+  SafeAreaView
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -169,7 +170,7 @@ export default function RecommendedScreen() {
 
   /* ======================= RENDER ======================= */
   return (
-    <View style={styles.root}>
+    <  SafeAreaView style={styles.root}>
       <ImageBackground source={BG} style={styles.bg} resizeMode="cover">
         <Header title="Recommended places" onBack={() => nav.goBack()} />
 
@@ -271,7 +272,7 @@ export default function RecommendedScreen() {
           </ScrollView>
         )}
       </ImageBackground>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -394,6 +395,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop:30,
   },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800', zIndex: 3 },
   backBtn: { position: 'absolute', left: 12, width: 28, height: 28, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
