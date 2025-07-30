@@ -1,4 +1,5 @@
 // Components/HomeScreen.js
+
 import React from 'react';
 import {
   SafeAreaView,
@@ -10,7 +11,8 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
-  ScrollView,            // ← прокрутка
+  ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -45,12 +47,12 @@ function AppButton({ text, icon, onPress }) {
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.btnWrap}>
       <LinearGradient
-        colors={['#FF0000', '#620303']} // требуемый градиент
+        colors={['#FF0000', '#620303']}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={styles.btn}
       >
-        {/* «водяной» значок — полностью виден, темнее и под стрелкой по zIndex */}
+        {/* «водяной» значок */}
         <Image
           source={icon}
           style={styles.btnGhostIcon}
@@ -126,14 +128,16 @@ const styles = StyleSheet.create({
   bg: { flex: 1 },
 
   scrollContent: {
-    paddingBottom: 28,                 // запас, чтобы видеть стрелку
-    minHeight: height + 40,            // побуждает к скроллу на маленьких экранах
+    paddingBottom: 28,
+    minHeight: height + 40,
   },
 
   /* header */
   header: {
     alignItems: 'center',
-    paddingTop: Platform.select({ ios: 8, android: 16 }),
+    paddingTop: Platform.OS === 'android'
+      ? (StatusBar.currentHeight || 0) + 30
+      : 8,
     paddingBottom: 8,
   },
   logo: {
@@ -181,36 +185,31 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  // «водяной» значок справа — более чёрный и полностью виден
+  // «водяной» значок
   btnGhostIcon: {
     position: 'absolute',
-    right: ARROW_RIGHT + ARROW_D + GHOST_GAP_FROM_ARROW, // левее кружка
+    right: ARROW_RIGHT + ARROW_D + GHOST_GAP_FROM_ARROW,
     width: GHOST_SIZE,
     height: GHOST_SIZE,
-  
-    
     zIndex: 1,
-   
   },
 
   // круг со стрелкой
   btnArrowWrap: {
     position: 'absolute',
     right: ARROW_RIGHT,
-    
     marginTop: -ARROW_D / 2,
     width: ARROW_D,
     height: ARROW_D,
     borderRadius: ARROW_D / 2,
-    
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2, // поверх «водяного» значка
+    zIndex: 2,
   },
   btnArrowIcon: {
-    left:-40,
-    top:10,
-    width: 20,      // стрелка чуть крупнее
+    left: -40,
+    top: 10,
+    width: 20,
     height: ARROW_D * 0.54,
   },
 });
